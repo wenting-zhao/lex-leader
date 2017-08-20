@@ -79,7 +79,7 @@ class LexLeader:
         res = []
 
         # A[1] <= B[1]   (thesis, 3.18)
-        res.append( "(x{} | !x{})".format(A[1], B[1]) )
+        res.append( "(!x{} | x{})".format(A[1], B[1]) )
         # X[1] <=> (A[1] = B[1])   (thesis, 3.19)
         res.append( "(x{} = (x{} = x{}))".format(X[1], A[1], B[1]) )
 
@@ -88,7 +88,7 @@ class LexLeader:
             res.append( "(x{} = (x{} & (x{} = x{})))".format(X[i+1], X[i], A[i+1], B[i+1]) )
         # i <= i <= n-1 X[i] -> (A[i+1] <= B[i+1])   (thesis, 3.21)
         for i in range(1, len(vector1)):
-            res.append( "(x{} -> (x{} | !x{}))".format(X[i], A[i+1], B[i+1]) )
+            res.append( "(x{} -> (!x{} | x{}))".format(X[i], A[i+1], B[i+1]) )
 
         return "\n& ".join(res)
 
