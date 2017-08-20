@@ -57,7 +57,7 @@ class LexLeader:
             res.append(self._helper_recursive_and(row1, row2))
         print ("\n& ".join(res))
 
-    def _helper_recursive_and(self, vector1, vector2):
+    def _recursive_and_helper(self, vector1, vector2):
         """ creates the lex-leader constraints between two vectors of variables
             inputs:
                 vector1, vector2: lists of integers, equivalent lengths,
