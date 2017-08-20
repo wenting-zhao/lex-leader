@@ -22,6 +22,12 @@ class LexLeader:
             self.which_lex = self._or_helper
         elif option == "or-cse":
             self.which_lex = self._or_subexpr_helper
+        elif option == "ror":
+            self.which_lex = self._ror_helper
+        elif option == "alpha":
+            self.which_lex = self._alpha_helper
+        elif option == "alpha-m":
+            self.which_lex = self._alpha_m_helper
 
     def print_lexleader(self):
         """ prints out the row and column lex-leader constraints of the full matrix
@@ -138,33 +144,137 @@ class LexLeader:
             returns:
                 string containing the full expression of the lex-leader constraint
         """
+        # setup vectors with 1-based indexing to match constraints in the source paper
         A = [None] + vector1
         B = [None] + vector2
 
         # creating the extra variables
         X = dict()
         assert len(vector1) == len(vector2)
-        for i in range(1, len(vector1)):
+        for i in range(1, len(vector1)+1):
             self.num_var += 1
             X[i] = self.num_var
 
         res = []  # for ANDing each element...
         temp = []  # for ORing each element...
 
+        n = len(vector1)
+
         # A[1] < B[1]
         temp.append( "(!x{} & x{})".format(A[1], B[1]) )
         # 1 <= i <= n-1, X[i] & (A[i+1] < B[i+1]))
-        for i in range(1, len(vector1)):
-            temp.append( "(x{} & (!x{} & x{}))".format(X[1], A[i+1], B[i+1]) )
-        # A[n] = B[n]
-        temp.append( "x{}".format(X[len(vector1)-1]) )
+        for i in range(1, n):
+            temp.append( "(x{} & (!x{} & x{}))".format(X[i], A[i+1], B[i+1]) )
+        # X[n]
+        temp.append( "x{}".format(X[n]) )
         res.append( "("+" | ".join(temp)+")" )
 
         # X[1] <=> A[1] = B[1]   (thesis, 3.36)
         res.append( "(x{} = (x{} = x{}))".format(X[1], A[1], B[1]) )
         # 1 <= i <= n−1, X[i+1] <=> (X[i] & (A[i+1] = B[i+1]))   (thesis, 3.37)
-        for i in range(1, len(vector1)-1):
+        for i in range(1, n):
             res.append( "(x{} = (x{} & (x{} = x{})))".format(X[i+1], X[i], A[i+1], B[i+1]) )
+
+        return "("+"\n& ".join(res)+")"
+
+    def _ror_helper(self, vector1, vector2):
+        """ creates the lex-leader constraints between two vectors of variables
+            via the recursive OR decomposition encoding using common sub-expression elimination
+            inputs:
+                vector1, vector2: lists of integers, equivalent lengths,
+                                  each representing a vector of variables
+            returns:
+                string containing the full expression of the lex-leader constraint
+        """
+        # setup vectors with 1-based indexing to match constraints in the source paper
+        A = [None] + vector1
+        B = [None] + vector2
+        assert len(vector1) == len(vector2)
+        n = len(vector1)
+
+        # creating the extra variables
+        X = dict()
+        for i in range(1, len(vector1)+1):
+            self.num_var += 1
+            X[i] = self.num_var
+
+        res = []
+        # X[1]   (thesis, 3.44)
+        res.append( "(x{})".format(X[1]) )
+        # X[n] <=> (A[n] <= B[n])   (thesis, 3.45)
+        res.append( "(x{} = (!x{} | x{}))".format(X[n], A[n], B[n]) )
+        # 1 <= i <= n−1, X[n−i] <=> (A[n−i]<B[n−i] | (A[n−i]=B[n−i] & X[n−i+1]))   (thesis, 3.46)
+        for i in range(1, n):
+            res.append( "(x{0} = (!x{1} & x{2}) | (x{1}=x{2} & x{3}))".format(X[n-i], A[n-i], B[n-i], X[n-i+1]) )
+
+        return "("+"\n& ".join(res)+")"
+
+    def _alpha_helper(self, vector1, vector2):
+        """ creates the lex-leader constraints between two vectors of variables
+            via the Alpha encoding using common sub-expression elimination
+            inputs:
+                vector1, vector2: lists of integers, equivalent lengths,
+                                  each representing a vector of variables
+            returns:
+                string containing the full expression of the lex-leader constraint
+        """
+        # setup vectors with 1-based indexing to match constraints in the source paper
+        A = [None] + vector1
+        B = [None] + vector2
+        assert len(vector1) == len(vector2)
+        n = len(vector1)
+
+        # creating the extra variables
+        alpha = dict()
+        for i in range(len(vector1)+1):
+            self.num_var += 1
+            alpha[i] = self.num_var
+
+        res = []
+        # alpha[0]   (thesis, 3.66)
+        res.append( "(x{})".format(alpha[0]) )
+        # 0 <= i <= n−1, -alpha[i] -> -a[i+1]   (thesis, 3.67)
+        for i in range(n):
+            res.append( "(!x{} -> !x{})".format(alpha[i], alpha[i+1]) )
+        # 1 <= i <= n, alpha[i] -> (A[i] = B[i])   (thesis, 3.68)
+        for i in range(n+1):
+            res.append( "(x{} -> (x{} = x{}))".format(alpha[i], A[i], B[i]) )
+        # 0 <= i <= n−1, ((alpha[i]) & (!alpha[i+1])) -> (A[i+1] < B[i+1])   (thesis, 3.69)
+        for i in range(n):
+            res.append( "(x{} & !x{}) -> (!x{} & x{})".format(alpha[i], alpha[i+1], A[i+1], B[i+1]) )
+        # 0 <= i <= n−1, alpha[i] -> (A[i+1] <= B[i+1])   (thesis, 3.70)
+        for i in range(n):
+            res.append( "(x{} -> (!x{} | x{}))".format(alpha[i], A[i+1], B[i+1]) )
+
+        return "("+"\n& ".join(res)+")"
+
+    def _alpha_m_helper(self, vector1, vector2):
+        """ creates the lex-leader constraints between two vectors of variables
+            via the Alpha M encoding using common sub-expression elimination
+            inputs:
+                vector1, vector2: lists of integers, equivalent lengths,
+                                  each representing a vector of variables
+            returns:
+                string containing the full expression of the lex-leader constraint
+        """
+        # setup vectors with 1-based indexing to match constraints in the source paper
+        A = [None] + vector1
+        B = [None] + vector2
+        assert len(vector1) == len(vector2)
+        n = len(vector1)
+
+        # creating the extra variables
+        alpha = dict()
+        for i in range(1, len(vector1)+2):
+            self.num_var += 1
+            alpha[i] = self.num_var
+
+        res = []
+        # alpha[1]   (thesis, 3.81)
+        res.append( "(x{})".format(alpha[1]) )
+        # 1 <= i <= n, alpha[i] <=> (((A[i] < B[i])|alpha[i+1]) & (A[i]<=B[i]))   (thesis, 3.82)
+        for i in range(1, n+1):
+            res.append( "(x{0} = (((!x{1} & x{2})|x{3}) & (!x{1} | x{2})))".format(alpha[i], A[i], B[i], alpha[i+1]) )
 
         return "("+"\n& ".join(res)+")"
 
