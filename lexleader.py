@@ -28,6 +28,8 @@ class LexLeader:
             self.which_lex = self._alpha_helper
         elif option == "alpha-m":
             self.which_lex = self._alpha_m_helper
+        elif option == "harvey":
+            self.which_lex = self._harvey_helper
 
     def print_lexleader(self):
         """ prints out the row and column lex-leader constraints of the full matrix
@@ -275,6 +277,43 @@ class LexLeader:
         # 1 <= i <= n, alpha[i] <=> (((A[i] < B[i])|alpha[i+1]) & (A[i]<=B[i]))   (thesis, 3.82)
         for i in range(1, n+1):
             res.append( "(x{0} = (((!x{1} & x{2})|x{3}) & (!x{1} | x{2})))".format(alpha[i], A[i], B[i], alpha[i+1]) )
+
+        return "("+"\n& ".join(res)+")"
+
+    def _harvey_helper(self, vector1, vector2):
+        """ creates the lex-leader constraints between two vectors of variables
+            via the Harvey encoding
+            inputs:
+                vector1, vector2: lists of integers, equivalent lengths,
+                                  each representing a vector of variables
+            returns:
+                string containing the full expression of the lex-leader constraint
+        """
+        # setup vectors with 1-based indexing to match constraints in the source paper
+        A = [None] + vector1
+        B = [None] + vector2
+        assert len(vector1) == len(vector2)
+        n = len(vector1)
+
+        # creating the extra variables
+        X = dict()
+        for i in range(1, len(vector1)+1):
+            self.num_var += 1
+            X[i] = self.num_var
+
+        res = []
+        # X[1]   (thesis, 3.54)
+        res.append( "(x{})".format(X[1]) )
+        # X[n] <=> (A[n] < (B[n]+1))   (thesis, 3.55)
+        res.append( "(x{} = x{} -> x{})".format(X[n], A[n], B[n]) )
+        # 0 <= i <= n−2, X[n−i−1] <=> (A[n−i−1] < (B[n−i−1] + Bool2Int(X[n−i]))),
+        # the right-hand side becomes (B+X)(!A+B)(!A+X)
+        for i in range(1, len(vector1)-1):
+            res.append(
+                "(x{XX} = ((x{B} | x{X}) & (!x{A} | x{B}) & (!x{A} | x{X})))".format(
+                    X=X[n-i], XX=X[n-i-1], A=A[n-i-1], B=B[n-i-1]
+                )
+            )
 
         return "("+"\n& ".join(res)+")"
 
