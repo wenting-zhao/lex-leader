@@ -2,12 +2,12 @@ import sys
 
 
 class LexLeader:
-    def __init__(self, columns, rows, option="and"):
+    def __init__(self, columns, rows, option):
         self.num_columns = columns
         self.num_rows = rows
-        self.parse_option(option)
         self.varmap = dict()
         self.num_var = 0
+        self.parse_option(option)
         for c in range(columns):
             for r in range(rows):
                 self.num_var += 1
@@ -31,8 +31,8 @@ class LexLeader:
         elif option == "harvey":
             self.which_lex = self._harvey_helper
 
-    def print_lexleader(self):
-        """ prints out the row and column lex-leader constraints of the full matrix
+    def make_lexleader(self):
+        """ return the row and column lex-leader constraints of the full matrix
         """
         full = []
         for c in range(self.num_columns-1):
@@ -43,7 +43,16 @@ class LexLeader:
             row1 = [self.varmap[(c, r)] for c in range(self.num_columns)]
             row2 = [self.varmap[(c, r+1)] for c in range(self.num_columns)]
             full.append(self.which_lex(row1, row2))
-        print ("\n& ".join(full))
+        return "\n& ".join(full)
+
+    def add_assumps(self, *variables):
+        assumps = []
+        for var in variables:
+            if var < 0:
+                assumps.append("!x{}".format(abs(var)))
+            else:
+                assumps.append("x{}".format(var))
+        return "\n& "+"\n& ".join(assumps)
 
     def _and_helper(self, vector1, vector2):
         """ creates the lex-leader constraints between two vectors of variables
@@ -128,7 +137,7 @@ class LexLeader:
             for j in range(1, i+1):
                 temp.append( "(x{} = x{})".format(A[j], B[j]) )
             temp = " & ".join(temp)
-            res.append( "({} -> (!x{} & x{}))".format(temp, A[i+1], B[i+1]) )
+            res.append( "({} & (!x{} & x{}))".format(temp, A[i+1], B[i+1]) )
 
         temp = []
         for i in range(1, len(vector1)+1):
@@ -239,11 +248,11 @@ class LexLeader:
         for i in range(n):
             res.append( "(!x{} -> !x{})".format(alpha[i], alpha[i+1]) )
         # 1 <= i <= n, alpha[i] -> (A[i] = B[i])   (thesis, 3.68)
-        for i in range(n+1):
+        for i in range(1, n+1):
             res.append( "(x{} -> (x{} = x{}))".format(alpha[i], A[i], B[i]) )
         # 0 <= i <= n−1, ((alpha[i]) & (!alpha[i+1])) -> (A[i+1] < B[i+1])   (thesis, 3.69)
         for i in range(n):
-            res.append( "(x{} & !x{}) -> (!x{} & x{})".format(alpha[i], alpha[i+1], A[i+1], B[i+1]) )
+            res.append( "((x{} & !x{}) -> (!x{} & x{}))".format(alpha[i], alpha[i+1], A[i+1], B[i+1]) )
         # 0 <= i <= n−1, alpha[i] -> (A[i+1] <= B[i+1])   (thesis, 3.70)
         for i in range(n):
             res.append( "(x{} -> (!x{} | x{}))".format(alpha[i], A[i+1], B[i+1]) )
@@ -308,7 +317,7 @@ class LexLeader:
         res.append( "(x{} = x{} -> x{})".format(X[n], A[n], B[n]) )
         # 0 <= i <= n−2, X[n−i−1] <=> (A[n−i−1] < (B[n−i−1] + Bool2Int(X[n−i]))),
         # the right-hand side becomes (B+X)(!A+B)(!A+X)
-        for i in range(1, len(vector1)-1):
+        for i in range(0, len(vector1)-1):
             res.append(
                 "(x{XX} = ((x{B} | x{X}) & (!x{A} | x{B}) & (!x{A} | x{X})))".format(
                     X=X[n-i], XX=X[n-i-1], A=A[n-i-1], B=B[n-i-1]
@@ -316,14 +325,3 @@ class LexLeader:
             )
 
         return "("+"\n& ".join(res)+")"
-
-
-def main():
-    columns = int(sys.argv[1])
-    rows = int(sys.argv[2])
-    option = sys.argv[3]
-    lex = LexLeader(columns, rows, option)
-    lex.print_lexleader()
-
-if __name__ == '__main__':
-    main()
