@@ -5,7 +5,6 @@ import unittest
 from subprocess import Popen, PIPE
 from pyminisolvers import minisolvers
 from random import randint
-from random import shuffle
 
 test_set = ["and", "and-cse", "or", "or-cse", "ror", "alpha", "alpha-m", "harvey"]
 
