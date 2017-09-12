@@ -38,15 +38,17 @@ class TestLexLeader(unittest.TestCase):
                 model = self.generate_model(i, i)
                 self.assertTrue(self.check_lex(i, i, each, model))
 
+    @repeat(10)
     def test_two_by_x(self):
         for each in test_set:
-            for i in [10, 100, 1000]:
+            for i in [10, 100]:
                 model = self.generate_model(2, i)
                 self.assertTrue(self.check_lex(2, i, each, model))
 
+    @repeat(10)
     def test_x_by_two(self):
         for each in test_set:
-            for i in [10, 1000]:
+            for i in [10, 100]:
                 model = self.generate_model(i, 2)
                 self.assertTrue(self.check_lex(i, 2, each, model))
 
@@ -54,9 +56,10 @@ class TestLexLeader(unittest.TestCase):
     def test_random_sat(self):
         num_c = randint(2, 10)
         num_r = randint(2, 10)
-        model = self.generate_model(num_c, num_r)
-        for each in test_set:
-            self.assertTrue(self.check_lex(num_c, num_r, each, model))
+        for _ in range(10):
+            model = self.generate_model(num_c, num_r)
+            for each in test_set:
+                self.assertTrue(self.check_lex(num_c, num_r, each, model))
 
     @repeat(100)
     def test_random_unsat(self):
@@ -65,12 +68,13 @@ class TestLexLeader(unittest.TestCase):
         model = self.generate_model(num_c, num_r)
         while len(set(model)) == 1:  # so that all vectors are not identical
             model = self.generate_model(num_c, num_r)
+        total_reverse = model[::-1]
+        model[-1], model[0] = model[0], model[-1]
+        partial_reverse = model
+        del model
         for each in test_set:
-            non_lex = model[::-1]
-            # print(each)
-            # print("---", model)
-            # print("===", non_lex)
-            self.assertFalse(self.check_lex(num_c, num_r, each, non_lex))
+            self.assertFalse(self.check_lex(num_c, num_r, each, total_reverse))
+            self.assertFalse(self.check_lex(num_c, num_r, each, partial_reverse))
 
     def make_assumps(self, complete, num_c, num_r, lex):
             assumps = ""
@@ -83,7 +87,7 @@ class TestLexLeader(unittest.TestCase):
                     assumps += lex.add_assumps(assump)
             return assumps
 
-    def compare_lex(self, vector):
+    def get_lex_value(self, vector):
         total = 0
         for x in range(len(vector)):
             total += (vector[-(x+1)] << x)
@@ -97,7 +101,7 @@ class TestLexLeader(unittest.TestCase):
             for i in range(num_r):
                 vertor.append(randint(0, 1))
             full.append(tuple(vertor))
-        return sorted(full, key=lambda vector: self.compare_lex(vector))
+        return sorted(full, key=lambda vector: self.get_lex_value(vector))
 
     def check_lex(self, num_c, num_r, option, assignment):
         lex = lexleader.LexLeader(num_c, num_r, option, rows_enabled=False)
