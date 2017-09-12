@@ -20,14 +20,16 @@ class TestLexLeader(unittest.TestCase):
         return repeatHelper
 
     def test_corner(self):
-        models = [[[0,0], [0,1]], [[0,0], [1,1]], [[0,1], [1,1]], [[1,1], [1,1]],
-                  [[0,1], [0,1]], [[0,0], [0,0]], [[0,0], [1,0]]]
-        non_lexes = [[1,0], [0,1]], [[1,1], [0,1], [[1,1], [0,0]], [[0,1], [0,0]]]
+        less = [[[0,0], [0,1]], [[0,0], [1,1]], [[0,1], [1,1]],
+                [[0,0], [1,0]], [[1,0], [1,1]]]
+        equal = [[[0,0], [0,0]], [[1,1], [1,1]], [[1,0],[1,0]], [[0,1], [0,1]]]
+        greater = [[[1,0], [0,1]], [[1,1], [0,1]], [[1,1], [0,0]], [[0,1], [0,0]],
+                   [[1,0], [0,0]], [[1,1], [1,0]], [[1,1], [0,1]]]
         for each in test_set:
-            for model in models:
+            for model in less+equal:
                 self.assertTrue(self.check_lex(2, 2, each, model))
 
-            for non_lex in non_lexes:
+            for non_lex in greater:
                 self.assertFalse(self.check_lex(2, 2, each, non_lex))
 
     def test_square(self):
@@ -61,13 +63,13 @@ class TestLexLeader(unittest.TestCase):
         num_c = randint(2, 10)
         num_r = randint(2, 10)
         model = self.generate_model(num_c, num_r)
-        while set(model) == 1:  # so that all vectors are not identical
+        while len(set(model)) == 1:  # so that all vectors are not identical
             model = self.generate_model(num_c, num_r)
         for each in test_set:
             non_lex = model[::-1]
-            print(each)
-            print("---", model)
-            print("===", non_lex)
+            # print(each)
+            # print("---", model)
+            # print("===", non_lex)
             self.assertFalse(self.check_lex(num_c, num_r, each, non_lex))
 
     def make_assumps(self, complete, num_c, num_r, lex):
