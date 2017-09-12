@@ -2,9 +2,11 @@ import sys
 
 
 class LexLeader:
-    def __init__(self, columns, rows, option):
+    def __init__(self, columns, rows, option, columns_enabled=True, rows_enabled=True):
         self.num_columns = columns
         self.num_rows = rows
+        self.columns_enabled = columns_enabled
+        self.rows_enabled = rows_enabled
         self.varmap = dict()
         self.num_var = 0
         self.parse_option(option)
@@ -35,14 +37,16 @@ class LexLeader:
         """ return the row and column lex-leader constraints of the full matrix
         """
         full = []
-        for c in range(self.num_columns-1):
-            column1 = [self.varmap[(c, r)] for r in range(self.num_rows)]
-            column2 = [self.varmap[(c+1, r)] for r in range(self.num_rows)]
-            full.append(self.which_lex(column1, column2))
-        for r in range(self.num_rows-1):
-            row1 = [self.varmap[(c, r)] for c in range(self.num_columns)]
-            row2 = [self.varmap[(c, r+1)] for c in range(self.num_columns)]
-            full.append(self.which_lex(row1, row2))
+        if self.columns_enabled:
+            for c in range(self.num_columns-1):
+                column1 = [self.varmap[(c, r)] for r in range(self.num_rows)]
+                column2 = [self.varmap[(c+1, r)] for r in range(self.num_rows)]
+                full.append(self.which_lex(column1, column2))
+        if self.rows_enabled:
+            for r in range(self.num_rows-1):
+                row1 = [self.varmap[(c, r)] for c in range(self.num_columns)]
+                row2 = [self.varmap[(c, r+1)] for c in range(self.num_columns)]
+                full.append(self.which_lex(row1, row2))
         return "\n& ".join(full)
 
     def add_assumps(self, *variables):
@@ -216,7 +220,7 @@ class LexLeader:
         res.append( "(x{} = (!x{} | x{}))".format(X[n], A[n], B[n]) )
         # 1 <= i <= n−1, X[n−i] <=> (A[n−i]<B[n−i] | (A[n−i]=B[n−i] & X[n−i+1]))   (thesis, 3.46)
         for i in range(1, n):
-            res.append( "(x{0} = (!x{1} & x{2}) | (x{1}=x{2} & x{3}))".format(X[n-i], A[n-i], B[n-i], X[n-i+1]) )
+            res.append( "(x{0} = ((!x{1} & x{2}) | ((x{1}=x{2}) & x{3})))".format(X[n-i], A[n-i], B[n-i], X[n-i+1]) )
 
         return "("+"\n& ".join(res)+")"
 
