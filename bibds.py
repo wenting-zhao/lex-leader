@@ -17,12 +17,8 @@ def parse_args():
 
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help="print more verbose output (constraint indexes for MUSes/MCSes) -- repeat the flag for detail about the algorithm's progress)")
-    parser.add_argument('-a', '--alltimes', action='store_true',
-                        help="print the time for every output")
     parser.add_argument('-s', '--stats', action='store_true',
                         help="print timing statistics to stderr")
-    parser.add_argument('-T', '--timeout', type=int, default=None,
-                        help="limit the runtime to TIMEOUT seconds")
     parser.add_argument('-l', '--limit', type=int, default=None,
                         help="limit number of subsets output (counting both MCSes and MUSes)")
     args = parser.parse_args()
@@ -192,7 +188,8 @@ def main():
 
             if args.limit == 0:
                 sys.stderr.write("Result limit reached.\n")
-                at_exit(s)
+                if args.stats:
+                    at_exit(s)
                 sys.exit(0)
         else:
             print("unsat")

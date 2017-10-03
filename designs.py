@@ -157,7 +157,7 @@ def main():
             i += 1
             print(i)
             limit -= 1
-            #print_model(model[:d.num_v*d.num_class], num_v, d.num_class)
+            print_model(model[:d.num_v*d.num_class], num_v, d.num_class)
             if limit == 0:
                 sys.stderr.write("Result limit reached.\n")
                 at_exit(s)
