@@ -138,10 +138,15 @@ def at_exit(stats):
 
 
 def main():
+    if len(sys.argv) < 3:
+        sys.exit("Usage: {} <num_v> <num_k> <num_lambda> [limit] [-s]".format(sys.argv[0]))
     num_v = int(sys.argv[1])
     num_k = int(sys.argv[2])
     num_lambda = int(sys.argv[3])
-    limit = int(sys.argv[4])
+    if len(sys.argv) >= 5:
+        limit = int(sys.argv[4])
+    else:
+        limit = float("inf")
     global s
     s = utils.Statistics()
     d = Decomp(num_v, num_k, num_lambda)
@@ -157,7 +162,8 @@ def main():
             i += 1
             print(i)
             limit -= 1
-            print_model(model[:d.num_v*d.num_class], num_v, d.num_class)
+            if sys.argv[-1] == '-v':
+                print_model(model[:d.num_v*d.num_class], num_v, d.num_class)
             if limit == 0:
                 sys.stderr.write("Result limit reached.\n")
                 at_exit(s)
