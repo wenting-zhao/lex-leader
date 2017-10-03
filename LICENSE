@@ -4,6 +4,7 @@ LEX-LEADER (python implementation) - Copyright (c) 2017, Wenting Zhao, Mark Liff
  includes code from:
 
 bool2cnf - Copyright (c) 2011, Tatsuhiro Tsuchiya
+utils ---- Copyright (c) 2013, Mark Liffiton
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
