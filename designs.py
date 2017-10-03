@@ -139,7 +139,7 @@ def at_exit(stats):
 
 def main():
     if len(sys.argv) < 3:
-        sys.exit("Usage: {} <num_v> <num_k> <num_lambda> [limit] [-s]".format(sys.argv[0]))
+        sys.exit("Usage: {} <num_v> <num_k> <num_lambda> [limit] [-v]".format(sys.argv[0]))
     num_v = int(sys.argv[1])
     num_k = int(sys.argv[2])
     num_lambda = int(sys.argv[3])
