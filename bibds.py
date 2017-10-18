@@ -112,6 +112,36 @@ def make_bibd(n, k, l, num_class, matrix2var, var2realvar):
         solver.add_atleast(vertices, k)
 
 
+def make_mylex(num_class, num_v, matrix2var, full=False):
+    # generating column lex-leader clauses
+    for c in range(num_class-1):
+        for r in range(num_v):
+            above = [-matrix2var[(c, x)] for x in range(r)]
+            assumps = above + [matrix2var[(c, r)]]
+            assumps = [-x for x in assumps]
+            if full:
+                custom_range = range(c+1, self.num_class)
+            else:
+                custom_range = [c+1]
+            for p in custom_range:
+                for q in range(r):
+                    solver.add_clause(assumps+[-matrix2var[(p, q)]])
+
+    # generating row lex-leader clauses
+    for r in range(num_v-1):
+        for c in range(num_class):
+            before = [-matrix2var[(y, r)] for y in range(c)]
+            assumps = before + [matrix2var[(c, r)]]
+            assumps = [-x for x in assumps]
+            for p in range(c):
+                if full:
+                    custom_range = range(r+1, num_v)
+                else:
+                    custom_range = [r+1]
+                for q in custom_range:
+                    solver.add_clause(assumps+[-matrix2var[(p, q)]])
+
+
 def make_matrixvar(num_c, num_r):
     matrix2var = dict()
     i = 1
@@ -164,12 +194,27 @@ def main():
     num_class = int(num_class)
     global solver
     solver = minisolvers.MinicardSolver()
-    lex = lexleader.LexLeader(num_class, n, lex_option)
-    with s.time("get_lex"):
-        lex_constraints = lex.make_lexleader()
-    with s.time("bool2cnf"):
-        var2realvar = call_bool2cnf(lex_constraints)
     matrix2var = make_matrixvar(num_class, n)
+
+    if lex_option == "none" or lex_option == "mylex":
+        # for not-using-any-lex option, an identity dict is created
+        # to avoid "var2realvar" not defined error.
+        var2realvar = {i: i for i in range(1, num_class*n+1)}
+
+        # then make vertex vars
+        while solver.nvars() < num_class*n:
+            solver.new_var()
+
+        if lex_option == "mylex":
+            make_mylex(num_class, n, matrix2var)
+
+    else:
+        lex = lexleader.LexLeader(num_class, n, lex_option)
+        with s.time("get_lex"):
+            lex_constraints = lex.make_lexleader()
+        with s.time("bool2cnf"):
+            var2realvar = call_bool2cnf(lex_constraints)
+
     make_bibd(n, k, l, num_class, matrix2var, var2realvar)
 
     count = 0

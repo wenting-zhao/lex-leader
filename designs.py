@@ -8,13 +8,14 @@ from pyminisolvers import minisolvers
 
 
 class Decomp:
-    def __init__(self, n, k, copy):
+    def __init__(self, n, k, copy, full=False):
         self.num_v = n
         self.num_k = k
         self.r = copy*(n-1)/(k-1)
         assert self.r == int(self.r)
         self.r = int(self.r)
         self.copy = copy
+        self.full = full
         self.e_all = list(itertools.permutations(range(self.num_v), 2))
         self.num_class = copy*n*(n-1)/2 / (k*(k-1)/2)
         assert self.num_class == int(self.num_class)
@@ -77,28 +78,28 @@ class Decomp:
 
     def lex_leader(self):
         # generating column lex-leader clauses
-        for c in range(self.num_class):
+        for c in range(self.num_class-1):
             for r in range(self.num_v):
                 above = [-self.getvertexvar(c, x) for x in range(r)]
                 assumps = above + [self.getvertexvar(c, r)]
                 assumps = [-x for x in assumps]
-                #print (c,r)
-                for p in range(c+1, self.num_class):
+                if self.full:
+                    custom_range = range(c+1, self.num_class)
+                else:
+                    custom_range = [c+1]
+                for p in custom_range:
                     for q in range(r):
                         self.solver.add_clause(assumps+[-self.getvertexvar(p, q)])
-                        #print "---", (p, q), assumps+[-self.getvertexvar(p, q)]
 
         # generating row lex-leader clauses
-        for r in range(self.num_v):
+        for r in range(self.num_v-1):
             for c in range(self.num_class):
                 before = [-self.getvertexvar(y, r) for y in range(c)]
                 assumps = before + [self.getvertexvar(c, r)]
                 assumps = [-x for x in assumps]
-                #print (c,r)
                 for p in range(c):
-                    for q in range(r+1, self.num_v):
-                        self.solver.add_clause(assumps+[-self.getvertexvar(p, q)])
-                        #print "---", (p, q), assumps+[-self.getvertexvar(p, q)]
+                    q = r+1
+                    self.solver.add_clause(assumps+[-self.getvertexvar(p, q)])
 
     def make_formula(self):
         self.edge_mutexes()
