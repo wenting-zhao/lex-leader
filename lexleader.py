@@ -38,14 +38,14 @@ class LexLeader:
         """
         full = []
         if self.columns_enabled:
-            for c in range(self.num_columns-1):
+            for c in range(self.num_columns-1, 0, -1):
                 column1 = [self.varmap[(c, r)] for r in range(self.num_rows)]
-                column2 = [self.varmap[(c+1, r)] for r in range(self.num_rows)]
+                column2 = [self.varmap[(c-1, r)] for r in range(self.num_rows)]
                 full.append(self.which_lex(column1, column2))
         if self.rows_enabled:
-            for r in range(self.num_rows-1):
+            for r in range(self.num_rows-1, 0, -1):
                 row1 = [self.varmap[(c, r)] for c in range(self.num_columns)]
-                row2 = [self.varmap[(c, r+1)] for c in range(self.num_columns)]
+                row2 = [self.varmap[(c, r-1)] for c in range(self.num_columns)]
                 full.append(self.which_lex(row1, row2))
         return "\n& ".join(full)
 

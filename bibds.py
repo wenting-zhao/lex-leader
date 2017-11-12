@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import lexleader
 import os
@@ -10,17 +12,15 @@ from pyminisolvers import minisolvers
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', type=int, default=None)
-    parser.add_argument('-k', type=int, default=None)
-    parser.add_argument('--copy', type=int, default=None)
+    parser.add_argument('--instance', type=str, default=None)
     parser.add_argument('--option', type=str, default=None)
 
     parser.add_argument('-v', '--verbose', action='count', default=0,
-                        help="print more verbose output (constraint indexes for MUSes/MCSes) -- repeat the flag for detail about the algorithm's progress)")
+                        help="print the actual designs")
     parser.add_argument('-s', '--stats', action='store_true',
                         help="print timing statistics to stderr")
     parser.add_argument('-l', '--limit', type=int, default=None,
-                        help="limit number of subsets output (counting both MCSes and MUSes)")
+                        help="limit number of design outputs")
     args = parser.parse_args()
     return args
 
@@ -34,7 +34,7 @@ def parse_dimacs(f):
             nclauses = int(tokens[3])
 
             while solver.nvars() < nvars:
-                solver.new_var()
+                solver.new_var(polarity=False)
             continue  # skip parsing the first line
         if line == "":
             continue  # skip parsing the last line
@@ -114,7 +114,7 @@ def make_bibd(n, k, l, num_class, matrix2var, var2realvar):
 
 def make_mylex(num_class, num_v, matrix2var, full=False):
     # generating column lex-leader clauses
-    for c in range(num_class-1):
+    for c in range(num_class-1, 0, -1):
         for r in range(num_v):
             above = [-matrix2var[(c, x)] for x in range(r)]
             assumps = above + [matrix2var[(c, r)]]
@@ -122,13 +122,13 @@ def make_mylex(num_class, num_v, matrix2var, full=False):
             if full:
                 custom_range = range(c+1, self.num_class)
             else:
-                custom_range = [c+1]
+                custom_range = [c-1]
             for p in custom_range:
                 for q in range(r):
                     solver.add_clause(assumps+[-matrix2var[(p, q)]])
 
     # generating row lex-leader clauses
-    for r in range(num_v-1):
+    for r in range(num_v-1, 0, -1):
         for c in range(num_class):
             before = [-matrix2var[(y, r)] for y in range(c)]
             assumps = before + [matrix2var[(c, r)]]
@@ -137,7 +137,7 @@ def make_mylex(num_class, num_v, matrix2var, full=False):
                 if full:
                     custom_range = range(r+1, num_v)
                 else:
-                    custom_range = [r+1]
+                    custom_range = [r-1]
                 for q in custom_range:
                     solver.add_clause(assumps+[-matrix2var[(p, q)]])
 
@@ -171,23 +171,26 @@ def block_model(model, matrix2var, var2realvar):
     solver.add_clause(lits)
 
 
-def at_exit(stats):
-    # print stats
-    times = stats.get_times()
-    counts = stats.get_counts()
-    other = stats.get_stats()
-
-    # sort categories by total runtime
+def at_exit(stats_from, option):
+    stats_to = dict()
+    times = stats_from.get_times()
     categories = sorted(times, key=times.get)
-    maxlen = max(len(x) for x in categories)
     for category in categories:
-        sys.stderr.write("%-*s : %8.3f\n" % (maxlen, category, times[category]))
+        stats_to[category] = times[category]
+    for key, value in solver.get_stats().items():
+        stats_to[key] = value
+    stats_to['clauses'] = solver.nclauses()
+    keys = sorted(stats_to.keys())
+    print(keys)
+    print(option+','+','.join(str(round(stats_to[k],3)) for k in keys))
 
 
 def main():
     args = parse_args()
     s = utils.Statistics()
-    n, k, l = args.n, args.k, args.copy
+    n, k, l = [int(i) for i in args.instance.split(',')]
+    if args.limit is None:
+        args.limit = float("inf")
     lex_option = args.option
     num_class = l*n*(n-1)/2 / (k*(k-1)/2)
     assert num_class == int(num_class)
@@ -208,6 +211,12 @@ def main():
         if lex_option == "mylex":
             make_mylex(num_class, n, matrix2var)
 
+        # for timing purpose...
+        with s.time("get_lex"):
+            pass
+        with s.time("bool2cnf"):
+            pass
+
     else:
         lex = lexleader.LexLeader(num_class, n, lex_option)
         with s.time("get_lex"):
@@ -225,20 +234,19 @@ def main():
             model = list(solver.get_model())
             block_model(model, matrix2var, var2realvar)
             count += 1
-            print(count)
             args.limit -= 1
-            #print(model[-(n*(n-1)//2)*num_class:])
             if args.verbose == 1:
                 print_model(model, n, num_class, matrix2var, var2realvar)
 
             if args.limit == 0:
                 sys.stderr.write("Result limit reached.\n")
                 if args.stats:
-                    at_exit(s)
+                    at_exit(s, lex_option)
                 sys.exit(0)
         else:
-            print("unsat")
-            break
+            if args.stats:
+                at_exit(s, lex_option)
+            sys.exit(0)
 
 if __name__ == '__main__':
     main()
