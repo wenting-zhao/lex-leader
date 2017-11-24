@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import atexit
+import signal
 import sys
 import lexleader
 import os
@@ -181,7 +183,6 @@ def at_exit(stats_from, option):
         stats_to[key] = value
     stats_to['clauses'] = solver.nclauses()
     keys = sorted(stats_to.keys())
-    print(keys)
     print(option+','+','.join(str(round(stats_to[k],3)) for k in keys))
 
 
@@ -226,6 +227,14 @@ def main():
 
     make_bibd(n, k, l, num_class, matrix2var, var2realvar)
 
+    if args.stats:
+        atexit.register(at_exit, s, lex_option)
+
+    def handler(signum, frame):
+        sys.exit(128)  # atexit should fire here
+    signal.signal(signal.SIGTERM, handler)  # external termination
+    signal.signal(signal.SIGINT, handler)   # CTL-C interrupts
+
     count = 0
     while True:
         with s.time("solving"):
@@ -235,17 +244,15 @@ def main():
             block_model(model, matrix2var, var2realvar)
             count += 1
             args.limit -= 1
+            print(count, round(s.total_time(),3))
             if args.verbose == 1:
                 print_model(model, n, num_class, matrix2var, var2realvar)
 
             if args.limit == 0:
                 sys.stderr.write("Result limit reached.\n")
-                if args.stats:
-                    at_exit(s, lex_option)
                 sys.exit(0)
         else:
-            if args.stats:
-                at_exit(s, lex_option)
+            print("UNSAT")
             sys.exit(0)
 
 if __name__ == '__main__':
