@@ -1,10 +1,10 @@
 import os
 
-everything = ["and", "and-cse", "or", "or-cse", "ror", "alpha", "alpha-m", "harvey", "mylex", "none"]
+everything = ("and", "and-cse", "or", "or-cse", "ror", "alpha", "alpha-m", "harvey", "mylex", "none")
 
 
 def main():
-    directory = os.fsencode("oneresult")
+    directory = os.fsencode("moreresults")
     allresults = dict()
 
     for file in os.listdir(directory):
@@ -14,8 +14,9 @@ def main():
             with open(pathtofile) as f:
                 results = dict()
                 for line in f:
-                    split = line.split(',')
-                    results[split[0]] = split[-1][:-2]
+                    if line.startswith(everything):
+                        split = line.split(',')
+                        results[split[0]] = split[-1][:-2]
             allresults[filename.split('.')[0]] = results
     print(','+','.join(everything))
     for instance in allresults.keys():
@@ -25,6 +26,6 @@ def main():
             if which in result:
                 result2print.append(result[which])
             else:
-                result2print.append(str(99999999))
+                result2print.append(str(3600))
         print(instance.replace(',', '-')+','+','.join(result2print))
 main()
