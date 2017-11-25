@@ -19,7 +19,7 @@ def main():
                 for line in f:
                     if line.startswith("[runlim] argv[4]:"):
                         this_option = line.split()[-1]
-                    if line.startswith(stop_at):
+                    if line.startswith(stop_at+" "):
                         results[this_option] = line.split()[-1]
                         if float(results[this_option]) > 3600:
                             results[this_option] = '3600'
