@@ -6,7 +6,7 @@ everything = ("and", "and-cse", "or", "or-cse", "ror", "alpha", "alpha-m", "harv
 
 def main():
     stop_at = sys.argv[1]
-    directory = os.fsencode("moreresults")
+    directory = os.fsencode("finalresults")
     allresults = dict()
 
     for file in os.listdir(directory):
