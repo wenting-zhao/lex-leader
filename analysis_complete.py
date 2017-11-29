@@ -1,6 +1,6 @@
 import os
 
-everything = ("and", "and-cse", "or", "or-cse", "ror", "alpha", "alpha-m", "harvey", "mylex", "none")
+everything = ("AND", "AND-CSE".upper(), "OR".upper(), "OR-CSE".upper(), "ROR".upper(), "Alpha", "Alpha-m", "Harvey", "Partial-lex", "None")
 
 
 def main():
